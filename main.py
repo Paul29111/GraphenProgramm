@@ -1,34 +1,31 @@
 import csv
-import heapq
 import math
 from copy import deepcopy
 from pprint import pprint
 
 
-
 def csvMatrixReader(path):
-    adjazenzMatrix = []
+    adjacencyMatrix = []
     with open(path, 'r') as matrixFile:
         matrixReader = csv.reader(matrixFile, delimiter=';')
         for row in matrixReader:
-            # adjazenzMatrix.append(row)
-            adjazenzMatrix.append([int(cell) for cell in row])
-    return adjazenzMatrix
+            adjacencyMatrix.append([int(cell) for cell in row])
+    return adjacencyMatrix
 
 
-def multiplyMatrizen(matrix1, matrix2):
+def multiplyMatrices(matrix1, matrix2):
     rows = len(matrix1)
     cols = len(matrix1[1])
-    matrixProdukt = [[0 for _ in range(cols)]for _ in range(rows)] # bestPractice "für alle"
+    matrixProduct = [[0 for _ in range(cols)]for _ in range(rows)] # bestPractice "für alle"
 
     for row in range(rows):
         for col in range(cols):
             for i in range(cols):
-                matrixProdukt[row][col] += matrix1[row][i] * matrix2[i][col]
-    return(matrixProdukt)
+                matrixProduct[row][col] += matrix1[row][i] * matrix2[i][col]
+    return(matrixProduct)
 
 
-def addingMatritzen(matrix1, matrix2):
+def addingMatrices(matrix1, matrix2):
     rows = len(matrix1)
     cols = len(matrix1[1])
     matrixSum = [[0 for _ in range(cols)] for _ in range(rows)] # bestPractice "für alle"
@@ -47,11 +44,11 @@ def calcDistancyMatrix(adjacencyMatrix):
     for row in range(rows):
         for col in range(cols):
             if adjacencyMatrix[row][col] == 1:
-                distanzmatrix[row][col] = adjacencyMatrix[row][col]
+                distanzmatrix[row][col] = adjacencyMatrix[row][col] # übertragen der Adjazenzmatrix
 
     matrix_step = adjacencyMatrix
     for step in range(2, rows+1): # zählt Durchläufe der Schleife
-        matrix_step = multiplyMatrizen(adjacencyMatrix, matrix_step) # berechnet die Adjazenzmtrix zur Potenz 'step'
+        matrix_step = multiplyMatrices(adjacencyMatrix, matrix_step) # berechnet die Adjazenzmtrix zur Potenz 'step'
         for row in range(rows):
             for col in range(cols):
                 if distanzmatrix[row][col] == math.inf and matrix_step[row][col] != 0: # ersetzt Werte in jedem Durchlauf
@@ -61,50 +58,40 @@ def calcDistancyMatrix(adjacencyMatrix):
 
 def calcExctricitys(distancyMatrix):
     eccentricitys = []
-    for row in distancyMatrix:
-        eccentricitys.append(max(row))
-    return(eccentricitys)
+    if len(findComponents(adjacencyMatrix)) == 1:
+        for row in distancyMatrix:
+            eccentricitys.append(max(row))
+        return eccentricitys
 
 
 def calcDiameter(eccentricitys):
-    return max((eccentricitys))
+    try:
+        return max((eccentricitys))
+    except:
+        return 'Graph nicht zusammenhängend'
 
 
 def calcRadius(eccentricitys):
-    return min((eccentricitys))
+    try:
+        return min((eccentricitys))
+    except:
+        return 'Graph nicht zusammenhängend'
 
 
 def calcCentre(eccentricitys):
     centre = []
-    for ecc in range(len(eccentricitys)):
-        if eccentricitys[ecc] == min(eccentricitys):
-            centre.append(ecc + 1)
-    return centre
-
-
-def calcWegMatrix(adjacencyMatrix):
-    rows = len(adjacencyMatrix)
-    cols = len(adjacencyMatrix)
-    wegMatrix = [[0 for row in range(rows)]for col in range(cols)]
-
-    einheitsmatrix = [[1 if row == col else 0 for row in range(rows)] for col in range(cols)]
-
-    matrix_step = addingMatritzen(adjacencyMatrix, einheitsmatrix)
-    for step in range(2, rows + 1):
-        matrix_step = adjacencyMatrix
-        for step in range(2, rows + 1):
-            matrix_step = multiplyMatrizen(adjacencyMatrix, matrix_step)
-            for row in range(rows):
-                for col in range(cols):
-                    if matrix_step[row][col] != 0:
-                        wegMatrix[row][col] = 1
-    print('Wegmatrix:')
-    pprint(wegMatrix)
+    try:
+        for ecc in range(len(eccentricitys)):
+            if eccentricitys[ecc] == min(eccentricitys):
+                centre.append(ecc + 1)
+        return centre
+    except:
+        return 'Graph nicht zusammenhängend'
 
 
 def dfs(graph, visited, vertex, component):
     visited[vertex] = True
-    component.append(vertex)
+    component.append(vertex + 1)
 
     for neighbor in range(len(graph)):
         if graph[vertex][neighbor] == 1 and not visited[neighbor]:
@@ -121,7 +108,6 @@ def findComponents(adjacencyMatrix):
             component = []
             dfs(adjacencyMatrix, visited, node, component)
             components.append(component)
-
     return components
 
 
@@ -149,7 +135,7 @@ def findArticulations(adjacencyMatrix):
 
 def removeEdge(matrix, vertex1, vertex2):
     matrix = deepcopy(matrix)
-    if matrix[vertex1][vertex2]:
+    if matrix[vertex1][vertex2]: # falsly/truly
         matrix[vertex1][vertex2] = 0
         matrix[vertex2][vertex1] = 0
     return matrix
@@ -159,19 +145,19 @@ def findBridges(adjacencyMatrix):
     rows = len(adjacencyMatrix)
     cols = len(adjacencyMatrix)
     bridges = []
-    numArticulations = len(findComponents(adjacencyMatrix)) # Anzahl der Artikulationen in der Adjazenzmatrix
+    numComponents = len(findComponents(adjacencyMatrix)) # Anzahl der Komponenten in der Adjazenzmatrix
 
     for row in range(rows):
-        for col in range(row, cols):
+        for col in range(row, cols): # range(start, stop, step)
             matrixTemp = removeEdge(adjacencyMatrix, row, col)
-            if len(findComponents(matrixTemp)) > numArticulations: # vergleicht, ob nach entfernen der Kante mehr Artikulationen entstanden sind
+            if len(findComponents(matrixTemp)) > numComponents: # vergleicht, ob nach entfernen der Kante mehr Artikulationen entstanden sind
                 bridges.append([row+1, col+1]) # KnotenA = Knoten1
     return bridges
 
 
 ############################################################### print('Ausgabe:')
 
-path = 'C:/Users/Paul/Kollegg/Informatik/scratch/testMatrix.csv'
+path = 'C:/Users/Paul/Kollegg/Informatik/scratch/xyz.csv'
 adjacencyMatrix = csvMatrixReader(path)
 
 print('Adjazenz Matrix:')
@@ -184,7 +170,8 @@ pprint(distancyMatrix)
 print()
 
 excentricitys = calcExctricitys(distancyMatrix)
-print(f'Exzentrizitäten: {excentricitys} \n ')
+
+print(f'Exzentrizitäten: {dict(enumerate(excentricitys, start=1))} \n ')
 
 print(f'Radius: {calcRadius(excentricitys)} \n')
 
